@@ -1,47 +1,48 @@
-import { stringify } from 'querystring';
-import {default as parse, CellRef, Ast } from './expr-parser.js';
+import { stringify } from "querystring";
+import { default as parse, CellRef, Ast } from "./expr-parser.js";
 
-import { Result, okResult, errResult } from 'cs544-js-utils';
+import { Result, okResult, errResult } from "cs544-js-utils";
+import { assert } from "console";
 
 //factory method
-export default async function makeSpreadsheet(name: string) :
-  Promise<Result<Spreadsheet>>
-{
+export default async function makeSpreadsheet(
+  name: string
+): Promise<Result<Spreadsheet>> {
   return okResult(new Spreadsheet(name));
 }
 
 type Updates = { [cellId: string]: number };
 
-class cellInfo{
-readonly id : string;
-readonly expr: string;
-readonly ast : string;
-readonly value : number;
-readonly dependents : string;
+class cellInfo {
+  readonly id: string;
+  readonly expr: string;
+  readonly ast: string;
+  readonly value: number;
+  readonly dependents: string;
 
-  constructor(id : string,expr: string,ast: string,value:number,dependents: string){
+  constructor(
+    id: string,
+    expr: string,
+    ast: string,
+    value: number,
+    dependents: string
+  ) {
     this.id = id;
     this.expr = expr;
     this.ast = ast;
     this.value = value;
     this.dependents = dependents;
-
   }
-  
 }
-
 
 // let cell:cellInfo[];
 
 export class Spreadsheet {
-
-  
-
   readonly name: string;
-  //TODO: add other instance variable declarations  
+  //TODO: add other instance variable declarations
   constructor(name: string) {
     this.name = name;
-    
+
     //TODO: add initializations for other instance variables
   }
 
@@ -49,47 +50,71 @@ export class Spreadsheet {
    *  specified by the string expr.  Update all cells which are
    *  directly or indirectly dependent on the base cell cellId.
    *  Return an object mapping the id's of all updated cells to
-   *  their updated values.  
+   *  their updated values.
    *
    *  Errors must be reported by returning an error Result having its
    *  code options property set to `SYNTAX` for a syntax error and
    *  `CIRCULAR_REF` for a circular reference and message property set
    *  to a suitable error message.
    */
-  async eval(cellId: string, expr: string) : Promise<Result<Updates>> {
-
+  async eval(cellId: string, expr: string): Promise<Result<Updates>> {
     // let dict ={}
-    let keyname : string = cellId;
-    JSON.stringify(keyname)
+    let keyname: string = cellId;
+    JSON.stringify(keyname);
     let stringToObject = {
-      [keyname] : expr
-    }
-    console.log()
-    //TODO  
-    // console.log(cellId);  
+      [keyname]: expr,
+    };
+    // console.log()
+    //TODO
+    // console.log(cellId);
     // console.log(expr);
-     let value = parse(expr);
+    let value = parse(expr);
     //  console.log(value)
     //  console.log(cellId)
     //  console.log(expr)
     // let value = this.Avalue(ast.val);
-    console.log(JSON.stringify(value,null,2));
+    // console.log(JSON.stringify(value,null,2));
+
+    // var spliting = expr.split(" ");
+    // console.log("split " + spliting + "     Type " + typeof(spliting));
+
+    // for(var i = 0; i< spliting.length; i++){
+    //   if(spliting[i] == keyname){
+    //     console.log("Circular ref found : " + spliting[i] )
+    //     const msg = `cyclic dependency ...`;
+    // return errResult(msg, 'CIRCULAR_REF');
+    //   }
+    // }
+
+    // let baseCellId = cellId;
+    // let baseCellRef = CellRef.parse(baseCellId)
+    // // var b = value.val.toText(baseCellRef)
+    // // console.log(b)
+    // console.log("value - " +JSON.stringify(value));
 
     let res = 0;
-    if(value.isOk)
-    {
+    if (value.isOk) {
       // console.log(value.val);
       res = this.Avalue(value.val);
-      
-    }else if(value.errors){
+    } else if (value.errors) {
       return errResult(value);
     }
-    
-    
+
+    var spliting = expr.split(" ");
+    console.log("split " + spliting + "     Type " + typeof spliting);
+
+    for (var i = 0; i < spliting.length; i++) {
+      if (spliting[i] == keyname) {
+        console.log("Circular ref found : " + spliting[i]);
+        const msg = `cyclic dependency ...`;
+        return errResult(msg, "CIRCULAR_REF");
+      }
+    }
+
     // console.log(value);
-    return okResult({[keyname]: res }); //initial dummy result
+    return okResult({ [keyname]: res }); //initial dummy result
   }
-    
+
   //TODO: add additional methods
 
   /*
@@ -120,7 +145,7 @@ export class Spreadsheet {
 }
 */
 
-/*
+  /*
 Avalue(ast: Ast): number {
   if (ast.kind === "num") {
     return ast.value;
@@ -135,43 +160,36 @@ Avalue(ast: Ast): number {
 }
 */
 
- Avalue(node: Ast): number {
-  if (node.kind === 'num') {
-    return node.value;
-  } else if (node.kind === 'app') {
-     const kidValues = node.kids.map((kid) => this.Avalue(kid));
-     
-      console.log(kidValues)
-     
-     if(node.fn)
-     {
-         console.log(node.fn)
-         if(kidValues.length == 2)
-         {
-             return FNS[node.fn](kidValues[0],kidValues[1]);
-         }
-         else if(node.fn == '-')
-         {
-             return (-1 * kidValues[0]);
-         }
-         else {
-             return kidValues[0];
-         }
-     }
-    
+  Avalue(node: Ast): number {
+    if (node.kind === "num") {
+      return node.value;
+    } else if (node.kind === "app") {
+      const kidValues = node.kids.map((kid) => this.Avalue(kid));
+
+      console.log(kidValues);
+
+      if (node.fn) {
+        console.log(node.fn);
+        if (kidValues.length == 2) {
+          return FNS[node.fn](kidValues[0], kidValues[1]);
+        } else if (node.fn == "-") {
+          return -1 * kidValues[0];
+        } else {
+          return kidValues[0];
+        }
+      }
+    }
+    return 0;
   }
-  return 0;
-}
 }
 
 //TODO: add additional classes and/or functions
 
-
 const FNS = {
-  '+': (a:number, b:number) : number => a + b,
-  '-': (a:number, b?:number) : number => b === undefined ? -a : a - b,
-  '*': (a:number, b:number) : number => a * b,
-  '/': (a:number, b:number) : number => a / b,
-  min: (a:number, b:number) : number => Math.min(a, b),
-  max: (a:number, b:number) : number => Math.max(a, b),
-}
+  "+": (a: number, b: number): number => a + b,
+  "-": (a: number, b?: number): number => (b === undefined ? -a : a - b),
+  "*": (a: number, b: number): number => a * b,
+  "/": (a: number, b: number): number => a / b,
+  min: (a: number, b: number): number => Math.min(a, b),
+  max: (a: number, b: number): number => Math.max(a, b),
+};
