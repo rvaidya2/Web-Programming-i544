@@ -81,6 +81,8 @@ export class Spreadsheet {
       // console.log(value.val);
       res = this.Avalue(value.val);
       
+    }else if(value.errors){
+      return errResult(value);
     }
     
     
