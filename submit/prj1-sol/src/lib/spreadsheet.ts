@@ -40,11 +40,10 @@ class cellInfo {
 let mapCells = new Map<string, string>();
 export class Spreadsheet {
   readonly name: string;
-  
+
   //TODO: add other instance variable declarations
   constructor(name: string) {
     this.name = name;
-    
 
     //TODO: add initializations for other instance variables
   }
@@ -68,10 +67,8 @@ export class Spreadsheet {
       [keyname]: expr,
     };
 
-    
-  //  mapCells.set(cellId,expr);
-  //  console.log("MAP: " + "KEYS :   "+ Array.from(mapCells.keys()) +" Values:  " +Array.from(mapCells.values()));
-
+    //  mapCells.set(cellId,expr);
+    //  console.log("MAP: " + "KEYS :   "+ Array.from(mapCells.keys()) +" Values:  " +Array.from(mapCells.values()));
 
     // console.log()
     //TODO
@@ -105,15 +102,19 @@ export class Spreadsheet {
     let res = 0;
     if (value.isOk) {
       // console.log(value.val);
-      res = this.Avalue(value.val,expr);
-      mapCells.set(cellId, expr)
-      console.log("MAP 3rd print : " + "KEYS :   "+ Array.from(mapCells.keys()) +" Values:  " +Array.from(mapCells.values()));
+      res = this.Avalue(value.val, expr);
+      mapCells.set(cellId, expr);
+      console.log(
+        "MAP 3rd print : " +
+          "KEYS :   " +
+          Array.from(mapCells.keys()) +
+          " Values:  " +
+          Array.from(mapCells.values())
+      );
     } else if (value.errors) {
       return errResult(value);
     }
 
-
-    
     var spliting = expr.split(" ");
     // console.log("split " + spliting + "     Type " + typeof spliting);
 
@@ -122,12 +123,12 @@ export class Spreadsheet {
         // console.log("Circular ref found : " + spliting[i]);
         const msg = `cyclic dependency ...`;
         return errResult(msg, "CIRCULAR_REF");
-      // } else if (mapCells.has(spliting[i]) && !Number(spliting[i])) {
-      //   const msg2 = `non-cyclic dependency...`;
-      //   return errResult(msg2, "CIRCULAR_REF");
-      // }
+        // } else if (mapCells.has(spliting[i]) && !Number(spliting[i])) {
+        //   const msg2 = `non-cyclic dependency...`;
+        //   return errResult(msg2, "CIRCULAR_REF");
+        // }
+      }
     }
-  }
 
     // console.log(value);
     // console.log("MAP 2nd print : " + "KEYS :   "+ Array.from(mapCells.keys()) +" Values:  " +Array.from(mapCells.values()));
@@ -135,18 +136,15 @@ export class Spreadsheet {
   }
 
   //TODO: add additional methods
-  splitFunction(expression : string): string[] {
-
+  splitFunction(expression: string): string[] {
     let arrString = [];
     const regex = /[+*-\s]+/g;
-    arrString = expression.split(regex);   
-    
-    // console.log("ARSTRING : " +arrString); // Output: ['a2', 'a2', 'a2']
-    
-          return arrString;
-  }
+    arrString = expression.split(regex);
 
-  
+    // console.log("ARSTRING : " +arrString); // Output: ['a2', 'a2', 'a2']
+
+    return arrString;
+  }
 
   /*
    Avalue(ast: Ast): number {
@@ -209,16 +207,13 @@ Avalue(ast: Ast): number {
           return kidValues[0];
         }
       }
-    }
-    else if(node.kind === "ref")
-    {
-      if(exp){
-        let arr : string[] = this.splitFunction(exp);
-        if(arr.length == 1){
+    } else if (node.kind === "ref") {
+      if (exp) {
+        let arr: string[] = this.splitFunction(exp);
+        if (arr.length == 1) {
           // console.log("Inside AVAL: " + mapCells.get(arr[0])+ " map : " + Array.from(mapCells.keys()), Array.from(mapCells.values()));
           return Number(mapCells.get(arr[0]));
         }
-        
       }
     }
     return 0;
