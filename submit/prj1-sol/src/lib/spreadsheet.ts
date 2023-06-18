@@ -40,6 +40,7 @@ class cellInfo {
 let mapCells = new Map<string, string>();
 export class Spreadsheet {
   readonly name: string;
+  // readonly mapCells: Map<string, string>;
 
   //TODO: add other instance variable declarations
   constructor(name: string) {
@@ -60,57 +61,19 @@ export class Spreadsheet {
    *  to a suitable error message.
    */
   async eval(cellId: string, expr: string): Promise<Result<Updates>> {
-    // let dict ={}
     let keyname: string = cellId;
     JSON.stringify(keyname);
-    let stringToObject = {
-      [keyname]: expr,
-    };
 
-    //  mapCells.set(cellId,expr);
-    //  console.log("MAP: " + "KEYS :   "+ Array.from(mapCells.keys()) +" Values:  " +Array.from(mapCells.values()));
-
-    // console.log()
     //TODO
-    // console.log(cellId);
-    // console.log(expr);
     let value = parse(expr);
-    //  console.log(value)
-    //  console.log(cellId)
-    //  console.log(expr)
-    // let value = this.Avalue(ast.val);
-    // console.log(JSON.stringify(value,null,2));
-
-    // var spliting = expr.split(" ");
-    // console.log("split " + spliting + "     Type " + typeof(spliting));
-
-    // for(var i = 0; i< spliting.length; i++){
-    //   if(spliting[i] == keyname){
-    //     console.log("Circular ref found : " + spliting[i] )
-    //     const msg = `cyclic dependency ...`;
-    // return errResult(msg, 'CIRCULAR_REF');
-    //   }
-    // }
-
-    // let baseCellId = cellId;
-    // let baseCellRef = CellRef.parse(baseCellId)
-    // // var b = value.val.toText(baseCellRef)
-    // // console.log(b)
-    // console.log("value - " +JSON.stringify(value));
-    // console.log("Map.has : " + mapCells.has("b1"))
 
     let res = 0;
     if (value.isOk) {
       // console.log(value.val);
+
       res = this.Avalue(value.val, expr);
-      mapCells.set(cellId, expr);
-      console.log(
-        "MAP 3rd print : " +
-          "KEYS :   " +
-          Array.from(mapCells.keys()) +
-          " Values:  " +
-          Array.from(mapCells.values())
-      );
+
+      mapCells.set(cellId, res.toString());
     } else if (value.errors) {
       return errResult(value);
     }
@@ -123,77 +86,33 @@ export class Spreadsheet {
         // console.log("Circular ref found : " + spliting[i]);
         const msg = `cyclic dependency ...`;
         return errResult(msg, "CIRCULAR_REF");
-        // } else if (mapCells.has(spliting[i]) && !Number(spliting[i])) {
-        //   const msg2 = `non-cyclic dependency...`;
-        //   return errResult(msg2, "CIRCULAR_REF");
+        // }else if(mapCells.has(spliting[i]) ){
+        //   console.log(mapCells.has(spliting[i]))
+        //   const msg = `Indirect cyclic dependency ...`;
+        //   return errResult(msg, "CIRCULAR_REF");
         // }
       }
     }
 
-    // console.log(value);
-    // console.log("MAP 2nd print : " + "KEYS :   "+ Array.from(mapCells.keys()) +" Values:  " +Array.from(mapCells.values()));
     return okResult({ [keyname]: res }); //initial dummy result
   }
 
   //TODO: add additional methods
   splitFunction(expression: string): string[] {
     let arrString = [];
-    const regex = /[+*-\s]+/g;
-    arrString = expression.split(regex);
-
-    // console.log("ARSTRING : " +arrString); // Output: ['a2', 'a2', 'a2']
-
+    // const regex = /[+*-\s]+/g;
+    arrString = expression.split(" ");
     return arrString;
   }
 
-  /*
-   Avalue(ast: Ast): number {
-    if(ast.kind == "num")
-    {
-      var arr = [];
-      if(arr.length < 2){
-      arr.push(ast.value);
-      }
-     return ast.value;
-    }
-    if(ast.kind == "app")
-    {
-
-      console.log(FNS[ast.fn](this.Avalue(ast.kids[0]),this.Avalue(ast.kids[1])))
-      // return this.Avalue(ast.kids[0]) + this.Avalue(ast.kids[1]);
-      return FNS[ast.fn](this.Avalue(ast.kids[0]),this.Avalue(ast.kids[1]));
-      
-      
-      
-    }
-
-    
-
-    return 0;
-  }
-}
-*/
-
-  /*
-Avalue(ast: Ast): number {
-  if (ast.kind === "num") {
-    return ast.value;
-    
-  } else if (ast.kind === "app") {
-    const fn = FNS[ast.fn];
-    const args = ast.kids.map((kid) => this.Avalue(kid));
-    return fn.apply(null,args);
-  }
-  return 0;
-}
-}
-*/
-
   Avalue(node: Ast, exp?: string): number {
+    // console.log(typeof(exp));
+    // console.log(exp);
+
     if (node.kind === "num") {
       return node.value;
     } else if (node.kind === "app") {
-      const kidValues = node.kids.map((kid) => this.Avalue(kid));
+      const kidValues = node.kids.map((kid) => this.Avalue(kid, exp));
 
       // console.log(kidValues);
 
@@ -208,14 +127,66 @@ Avalue(ast: Ast): number {
         }
       }
     } else if (node.kind === "ref") {
+      // console.log("In ref" + e);
+      // console.log(exp)
+
       if (exp) {
         let arr: string[] = this.splitFunction(exp);
+        // console.log("Array Length: "+ arr.length)
         if (arr.length == 1) {
-          // console.log("Inside AVAL: " + mapCells.get(arr[0])+ " map : " + Array.from(mapCells.keys()), Array.from(mapCells.values()));
           return Number(mapCells.get(arr[0]));
+        } else {
+          let arr2: string[] = [];
+          let str: string = "";
+          // console.log("String array"+arr);
+          for (let i = 0; i < arr.length; i++) {
+            if (i % 2 != 0) {
+              arr2.push(arr[i]!);
+              // console.log("Mapped value  "+ str)
+            } else {
+              arr2.push(mapCells.get(arr[i])!);
+            }
+          }
+          // console.log("ARR2:  " +arr2.toString());
+          let merged = arr2.join(" ");
+          // console.log(merged);
+          const ast = parse(merged);
+          // console.log("AST: " + JSON.stringify(ast))
+
+          if (ast.isOk) {
+            // console.log(this.AnotherFunction(ast.val))
+            const ans = this.AnotherFunction(ast.val);
+            //  console.log("ANSWER: " +ans)
+            return ans;
+          }
         }
       }
     }
+    return 0;
+  }
+
+  AnotherFunction(node: Ast): number {
+    if (node.kind === "num") {
+      return node.value;
+    } else if (node.kind === "app") {
+      const kidValues = node.kids.map((kid) => this.Avalue(kid));
+
+      // console.log(kidValues);
+
+      if (node.fn) {
+        // console.log(node.fn);
+        if (kidValues.length == 2) {
+          // console.log(FNS[node.fn](kidValues[0], kidValues[1]))
+          let a = FNS[node.fn](kidValues[0], kidValues[1]);
+          return a;
+        } else if (node.fn == "-") {
+          return -1 * kidValues[0];
+        } else {
+          return kidValues[0];
+        }
+      }
+    }
+
     return 0;
   }
 }
