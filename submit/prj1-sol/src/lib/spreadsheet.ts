@@ -64,6 +64,9 @@ export class Spreadsheet {
     let stringToObject = {
       [keyname]: expr,
     };
+   
+
+    
     // console.log()
     //TODO
     // console.log(cellId);
@@ -108,6 +111,9 @@ export class Spreadsheet {
         console.log("Circular ref found : " + spliting[i]);
         const msg = `cyclic dependency ...`;
         return errResult(msg, "CIRCULAR_REF");
+      } else if (!Number(spliting[i]) && stringToObject == undefined) {
+        const msg2 = `non-cyclic dependency...`;
+        return errResult(msg2, "CIRCULAR_REF");
       }
     }
 
