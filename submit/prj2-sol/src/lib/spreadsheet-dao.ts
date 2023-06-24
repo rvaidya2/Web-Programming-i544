@@ -19,28 +19,52 @@ makeSpreadsheetDao(mongodbUrl: string, ssName: string)
 
 export class SpreadsheetDao {
 
+  private client : mongo.MongoClient;
+  private collection : mongo.Collection;
+
+  constructor(client: mongo.MongoClient, collection: mongo.Collection){
+    this.client = client;
+    this.collection = collection;
+  }
+
   //TODO: add properties as necessary
   
   //factory method
   static async make(dbUrl: string, ssName: string)
     : Promise<Result<SpreadsheetDao>>
   {
+    try {
+      const client = await mongo.MongoClient.connect(dbUrl);
+      const db = client.db(ssName);
+      const collection = db.collection('expressions');
+      return okResult(new SpreadsheetDao(client, collection));
+    } catch (error) {
+      return errResult('DB', error);
+    }
     //TODO
-    return okResult(new SpreadsheetDao());
+    // return okResult(new SpreadsheetDao());
   }
 
   /** Release all resources held by persistent spreadsheet.
    *  Specifically, close any database connections.
    */
   async close() : Promise<Result<undefined>> {
+    try {
+      await this.client.close();
+      return okResult(undefined);
+    } catch (error) {
+      return errResult('DB', error);
+    }
     //TODO
-    return okResult(undefined);
+    // return okResult(undefined);
   }
 
   /** return name of this spreadsheet */
   getSpreadsheetName() : string {
+    
+    return this.collection.dbName;
     //TODO
-    return 'TODO';
+    // return 'TODO';
   }
 
   /** Set cell with id cellId to string expr. */
