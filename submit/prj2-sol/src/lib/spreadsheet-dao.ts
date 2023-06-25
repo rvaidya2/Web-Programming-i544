@@ -39,7 +39,7 @@ export class SpreadsheetDao {
       const collection = db.collection('expressions');
       return okResult(new SpreadsheetDao(client, collection));
     } catch (error) {
-      // console.log(error.message)
+      // console.log(error.result)
       return errResult('DB', 'DB');
     }
     //TODO
