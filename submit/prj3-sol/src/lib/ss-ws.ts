@@ -42,6 +42,7 @@ function setupRoutes(app: Express.Application) {
   //routes for individual cells
   //TODO
 
+  app.use(`${base}/:spreadsheetName/:cellId`, makeGetCellHandler(app));
   //routes for entire spreadsheets
   //TODO
 
@@ -74,6 +75,23 @@ function setupRoutes(app: Express.Application) {
 /****************** Handlers for Spreadsheet Cells *********************/
 
 //TODO
+
+function makeGetCellHandler(app: Express.Application) {
+  return async function(req: Express.Request, res: Express.Response) {
+    try {
+
+      const {spreadsheet = req.params.spreadsheetName , cellId = req.params.cellId} = req.params;
+      const getCell = await app.locals.ssServices.query(spreadsheet, cellId);
+    
+      if (!getCell.isOk) throw getCell;
+      res.json(selfResult(req, getCell.val));    
+    }
+    catch(err) {
+      const mapped = mapResultErrors(err);
+      res.status(mapped.status).json(mapped);
+    }    
+  };  
+}
 
 /**************** Handlers for Complete Spreadsheets *******************/
 
@@ -180,4 +198,9 @@ function mapResultErrors(err: Error|ErrResult) : ErrorEnvelope {
   if (status === STATUS.SERVER_ERROR)  console.error(errors);
   return { isOk: false, status, errors, };
 } 
+
+
+
+
+
 
