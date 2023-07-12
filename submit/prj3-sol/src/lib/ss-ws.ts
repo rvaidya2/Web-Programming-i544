@@ -6,7 +6,7 @@ import STATUS from 'http-status';
 
 import { Result, okResult, errResult, Err, ErrResult } from 'cs544-js-utils';
 
-import { SpreadsheetServices as SSServices } from 'cs544-prj2-sol';
+import { SpreadsheetServices as SSServices, SpreadsheetDao } from 'cs544-prj2-sol';
 
 import { SelfLink, SuccessEnvelope, ErrorEnvelope }
   from './response-envelopes.js';
@@ -42,7 +42,13 @@ function setupRoutes(app: Express.Application) {
   //routes for individual cells
   //TODO
 
-  app.use(`${base}/:spreadsheetName/:cellId`, makeGetCellHandler(app));
+  app.get(`${base}/:spreadsheetName/:cellId`, makeGetCellHandler(app));
+  app.patch(`${base}/:spreadsheetName/:cellId`, makeUpdateCellHandler(app))
+  app.delete(`${base}/:spreadsheetName/:cellId`, makeDeleteHandler(app))
+  app.delete(`${base}/:spreadsheetName`, makeClearSpreadsheetHandler(app))
+  app.put(`${base}/:spreadsheetName`, makeLoadSpreadsheetHandler(app))
+  app.get(`${base}/:spreadsheetName`, makeGetSpreadsheetHandler(app))
+  
   //routes for entire spreadsheets
   //TODO
 
@@ -75,14 +81,14 @@ function setupRoutes(app: Express.Application) {
 /****************** Handlers for Spreadsheet Cells *********************/
 
 //TODO
-
+/*Implement the Get-Cell web service for reading a cell in a spreadsheet. Set up a suitable route in the router. The handler should be a simple wrapper around the query() service provided by app.locals.ssServices. Extract the spreadsheet name and cellId from req.param. Make sure you check for errors and convert them to HTTP errors using the procedure outlined earlier.
+*/ 
 function makeGetCellHandler(app: Express.Application) {
   return async function(req: Express.Request, res: Express.Response) {
     try {
 
       const {spreadsheet = req.params.spreadsheetName , cellId = req.params.cellId} = req.params;
-      const getCell = await app.locals.ssServices.query(spreadsheet, cellId);
-    
+      const getCell = await app.locals.ssServices.query(spreadsheet, cellId);    
       if (!getCell.isOk) throw getCell;
       res.json(selfResult(req, getCell.val));    
     }
@@ -93,10 +99,119 @@ function makeGetCellHandler(app: Express.Application) {
   };  
 }
 
+
+/*Implement the Set-Cell web service. The handler should be triggered on a PATCH route and will require accessing the expr query parameter using req.query.expr. It will simply forward the request over to the evaluate() method on the spreadsheet services app.locals.ssServices. */
+function makeUpdateCellHandler(app: Express.Application) {
+  return async function(req: Express.Request, res: Express.Response) {
+    try {
+      const {spreadsheetName , cellId } = req.params;
+      const { expr, srcCellId } = req.query;   
+      
+      const intermediateResult = {
+        isOk: Object.keys(req.query).length === 1,
+        status: STATUS.BAD_REQUEST,
+        errors: [{ options: { code: 'BAD_REQ' } }]
+      };
+
+      if (!intermediateResult.isOk) {
+        throw intermediateResult;
+      }
+    if (expr) {
+        const setCell = await app.locals.ssServices.evaluate(spreadsheetName, cellId, expr);
+        if (!setCell.isOk) throw setCell;
+        res.json(selfResult(req, setCell.val));
+      } else if (srcCellId) {
+        const copyCell = await app.locals.ssServices.copy(spreadsheetName, cellId, srcCellId);
+        if (!copyCell.isOk) throw copyCell;
+        res.json(selfResult(req, copyCell.val));
+      } 
+    } catch (err) {
+      const mapped = mapResultErrors(err);
+      res.status(mapped.status).json(mapped);
+    }
+  };
+}
+
+
+
 /**************** Handlers for Complete Spreadsheets *******************/
 
 //TODO
 
+function makeDeleteHandler(app: Express.Application) {
+  return async function(req: Express.Request, res: Express.Response) {
+    try {
+      const {spreadsheetName, cellId } = req.params; //if needed
+      
+const deleteCell = await app.locals.ssServices.remove(spreadsheetName, cellId);
+if (!deleteCell.isOk) throw deleteCell;
+      res.json(selfResult(req, deleteCell.val));
+    }
+    catch(err) {
+      const mapped = mapResultErrors(err);
+      res.status(mapped.status).json(mapped);
+    }
+  };
+}
+
+function makeClearSpreadsheetHandler(app: Express.Application) {
+  return async function(req: Express.Request, res: Express.Response) {
+    try {
+      const {spreadsheetName } = req.params; //if needed
+      
+const clearSS = await app.locals.ssServices.clear(spreadsheetName);
+if (!clearSS.isOk) throw clearSS;
+      res.json(selfResult(req, clearSS.val));
+    }
+    catch(err) {
+      const mapped = mapResultErrors(err);
+      res.status(mapped.status).json(mapped);
+    }
+  };
+}
+
+
+function makeLoadSpreadsheetHandler(app: Express.Application) {
+  return async function(req: Express.Request, res: Express.Response) {
+    try {
+      const {spreadsheetName} = req.params; 
+      const dump: [string, string][] = req.body;
+      
+      
+    const loadCell = await app.locals.ssServices.load(spreadsheetName, dump);
+    
+    if (!loadCell.isOk) throw loadCell;
+      res.json(selfResult(req, loadCell.val));
+      }
+    catch(err) {
+      const mapped = mapResultErrors(err);
+      res.status(mapped.status).json(mapped);
+    }
+  };
+}
+
+
+function makeGetSpreadsheetHandler(app: Express.Application) {
+  return async function(req: Express.Request, res: Express.Response) {
+    try {
+      const { spreadsheetName } = req.params;
+      const {ssDao} = req.query;
+      
+      const getSpreadsheetResult = await app.locals.ssServices.getSpreadsheet(ssDao, spreadsheetName);
+      console.log(getSpreadsheetResult)
+      if (!getSpreadsheetResult.isOk) throw getSpreadsheetResult;
+      
+      
+      res.json(selfResult(req, getSpreadsheetResult.val));
+
+      
+    }
+    catch(err) {
+      const mapped = mapResultErrors(err);
+      res.status(mapped.status).json(mapped);
+    }
+  };
+}
 /*************************** Generic Handlers **************************/
 
 /** Default handler for when there is no route for a particular method
