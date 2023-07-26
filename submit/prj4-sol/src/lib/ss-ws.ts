@@ -114,7 +114,28 @@ async function doFetchJson<T>(method: string, url: URL,
 			      jsonBody?: object)
   : Promise<Result<T>> 
 {
-  //TODO
-  return okResult('TODO' as any);
+  try {
+    const headers = {
+      'Content-Type': 'application/json', 
+    };
+
+    const response = await fetch(url.toString(), {
+      method,
+      headers,
+      body: jsonBody ? JSON.stringify(jsonBody) : undefined,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok || (data && data.errors)) {
+      return errResult(data.errors || 'Unknown error occurred.');
+    }
+
+    return okResult(data as T);
+  } catch (error) {
+    return errResult(error.message || 'Unknown error occurred.');
+  }
+  // //TODO
+  // return okResult('TODO' as any);
 }
 
