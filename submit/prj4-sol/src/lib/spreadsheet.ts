@@ -34,11 +34,34 @@ class Spreadsheet {
 
   /** add listeners for different events on table elements */
   private addListeners() {
+    const clearButton = document.querySelector('#clear');
+  if (clearButton) {
+    clearButton.addEventListener('click', this.clearSpreadsheet);
+  }
+
+  const cells = document.querySelectorAll('.cell');
+  cells.forEach((cell) => {
+    cell.addEventListener('focus', this.focusCell);
+    cell.addEventListener('blur', this.blurCell);
+    cell.addEventListener('copy', this.copyCell);
+    cell.addEventListener('paste', this.pasteCell);
+  });
     //TODO: add listeners for #clear and .cell
   }
 
   /** listener for a click event on #clear button */
   private readonly clearSpreadsheet = async (ev: Event) => {
+    const cells = document.querySelectorAll('.cell');
+  for (const cell of cells) {
+    cell.textContent = '';
+    cell.removeAttribute('data-value');
+    cell.removeAttribute('data-expr');
+  }
+
+  const result = await this.ws.clear(this.ssName);
+  if (!result.isOk) {
+    return this.errors;
+  }
     //TODO
   };
  
@@ -69,6 +92,20 @@ class Spreadsheet {
    */
   /** load initial spreadsheet data into DOM */
   private async load() {
+    const result = await this.ws.dumpWithValues(this.ssName);
+  if (result.isOk) {
+    const data = result.val;
+    for (const [cellId, expr, value] of data) {
+      const cell = document.getElementById(cellId);
+      if (cell) {
+        cell.textContent = value.toString();
+        cell.setAttribute('data-value', value.toString());
+        cell.setAttribute('data-expr', expr);
+      }
+    }
+  } else {
+    return this.errors.display;
+  }
     //TODO
   }
 
