@@ -114,7 +114,9 @@ async function doFetchJson<T>(method: string, url: URL,
 			      jsonBody?: object)
   : Promise<Result<T>> 
 {
+  
   try {
+    
     const headers = {
       'Content-Type': 'application/json', 
     };
@@ -125,15 +127,18 @@ async function doFetchJson<T>(method: string, url: URL,
       body: jsonBody ? JSON.stringify(jsonBody) : undefined,
     });
 
+    
     const data = await response.json();
 
     if (!response.ok || (data && data.errors)) {
       return errResult(data.errors || 'Unknown error occurred.');
+      
     }
 
-    return okResult(data as T);
+    return okResult(data.result);
   } catch (error) {
     return errResult(error.message || 'Unknown error occurred.');
+    
   }
   // //TODO
   // return okResult('TODO' as any);
