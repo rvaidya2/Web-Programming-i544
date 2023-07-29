@@ -14,7 +14,7 @@ class Spreadsheet {
   private readonly ws: SpreadsheetWs;
   private readonly ssName: string;
   private readonly errors: Errors;
-  private readonly focus: string;
+  private readonly isCellFocusedMap: { [cellId: string]: boolean } = {};
   //TODO: add more instance variables
 
   constructor(ws: SpreadsheetWs, ssName: string) {
@@ -23,7 +23,7 @@ class Spreadsheet {
     this.errors = new Errors();
     this.makeEmptySS();
     this.addListeners();
-    this.focus = '';
+    this.isCellFocusedMap = {};
     
     //TODO: initialize added instance variables
   }
@@ -45,8 +45,8 @@ class Spreadsheet {
 
   const cells = document.querySelectorAll('.cell');
   cells.forEach((cell) => {
-    cell.addEventListener('focus', this.focusCell);
-    cell.addEventListener('blur', this.blurCell);
+    cell.addEventListener('focusin', this.focusCell);
+    cell.addEventListener('focusout', this.blurCell);
     cell.addEventListener('copy', this.copyCell);
     cell.addEventListener('paste', this.pasteCell);
   });
@@ -54,39 +54,65 @@ class Spreadsheet {
 
   /** listener for a click event on #clear button */
   private readonly clearSpreadsheet = async (ev: Event) => {
- 
     //TODO
-    const cells = document.querySelectorAll('.cell');
-  for (const cell of cells) {
+    // const cells = ev.currentTarget as HTMLElement;
+    // console.log("Cells",cells)
+  const cells = document.querySelectorAll('.cell');
+  if(cells != null){
+  for (const cell of cells) {    
     cell.textContent = '';
     cell.removeAttribute('data-value');
     cell.removeAttribute('data-expr');
   }
-
+}
   const result = await this.ws.clear(this.ssName);
+
   if (!result.isOk) {
     this.errors;
   }
+  
   };
 
   /** listener for a focus event on a spreadsheet data cell */
   private readonly focusCell = (ev: Event) => {
-    // if(ev.isTrusted){
-
     const cell = ev.target as HTMLElement;
     const expr = cell.getAttribute('data-expr');
-    if(expr!=null){
+    if (expr != null) {
       cell.textContent = expr;
+      // console.log(this.isCellFocusedMap)
+      // console.log(this.isCellFocusedMap[cell.id])
+      this.isCellFocusedMap[cell.id] = true; // Set the flag to true when a cell is focused
+    // console.log(this.isCellFocusedMap[cell.id])
+       
     }
-
-  }
-    //TODO
+    
+  };  
   
 
   /** listener for a blur event on a spreadsheet data cell */
-  private readonly blurCell = async (ev: Event) => {
+  private readonly blurCell = async (ev: Event) => {     
     //TODO
+    const cell = ev.target as HTMLElement;
+    const expr = cell.getAttribute('data-expr');
+    const id = cell.getAttribute('id');
+// console.log("CELL: ",cell," EXPR: ",expr)
+    // console.log("ev.target", ev.target)
+    if(this.isCellFocusedMap && id !== null && expr !== null){
+    const result = await this.ws.evaluate(this.ssName,  id, expr )
+    console.log("Result ",result)
+    if(result.isOk){
+      const valObject = result.val;
+      const firstPropertyName = Object.keys(valObject)[0];
+      const firstPropertyValue = valObject[firstPropertyName];
+      console.log("Object:", firstPropertyValue); 
+      cell.textContent = JSON.stringify(firstPropertyValue);
+    }else{
+      this.errors;
+    }
+      
+    }
     
+
   };
 
   /** listener for a copy event on a spreadsheet data cell */
@@ -119,7 +145,9 @@ class Spreadsheet {
         cell.setAttribute('data-value', value.toString());
         cell.setAttribute('data-expr', expr);
       }
+      
     }
+    
   } else {
     this.errors;
   }
