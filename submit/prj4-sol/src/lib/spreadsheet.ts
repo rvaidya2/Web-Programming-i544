@@ -16,6 +16,7 @@ class Spreadsheet {
   private readonly errors: Errors;
   private readonly isCellFocusedMap: { [cellId: string]: boolean } = {};
   private focusedCellId: string | null = null;
+  private copySourceCellId: any | null;
   //TODO: add more instance variables
 
   constructor(ws: SpreadsheetWs, ssName: string) {
@@ -39,7 +40,7 @@ class Spreadsheet {
   private addListeners() {
     
     //TODO: add listeners for #clear and .cell
-    const clearButton = document.getElementById('clear');
+    const clearButton = document.getElementById('clear')!;
   if (clearButton) {
     clearButton.addEventListener('click', this.clearSpreadsheet);
   }
@@ -62,12 +63,12 @@ class Spreadsheet {
   if (!result.isOk) {
     this.errors;
   }
-  if(cells != null){
+  
   for (const cell of cells) {    
     cell.textContent = '';
     cell.removeAttribute('data-value');
     cell.removeAttribute('data-expr');
-  }
+  
   }
 
   
@@ -81,8 +82,7 @@ class Spreadsheet {
     // console.log("EXPR",expr)
     if (expr != null) {
       cell.textContent = expr;   
-        
-      // this.isCellFocusedMap[cell.id] = true;    
+            
        
     }
     this.focusedCellId = cell.id;
@@ -92,17 +92,34 @@ class Spreadsheet {
 
    /** listener for a blur event on a spreadsheet data cell */
 private readonly blurCell = async (ev: Event) => {
-  const cell = ev.target as HTMLElement;
-  const cellId = cell.id;
-  const expr = cell.textContent;
+  const cellAll = document.querySelectorAll('.cell');
+  
 
-  if (cellId === "" || expr === "") {
-    
-    const result = await this.ws.remove(this.ssName, cellId);
+
+  // const cellsWithData = Array.from(cellAll).filter((cell) => {
+  //   const dataValue = cell.getAttribute('data-value');
+  //   const dataExpr = cell.getAttribute('data-expr');
+  //   return dataValue !== null && dataExpr !== null;
+  // });
+
+  
+  // console.log("CELL WITH DATA",cellsWithData);
+
+  
+
+  const cell = ev.target as HTMLElement; 
+  const cellId = cell.id;
+  const expr = cell.textContent; 
+  console.log("cell",cell)
+
+  // console.log("CELL", cell)
+  // console.log("CELLAll", cellAll)
+
+  if (cellId === "" || expr === "") {    
+    const result = await this.ws.remove(this.ssName, cellId);    
     if (!result.isOk) {
-      this.errors;
+      this.errors.display;
     }
-    
     cell.textContent = "";
     cell.removeAttribute('data-value');
     cell.removeAttribute('data-expr');
@@ -111,15 +128,27 @@ private readonly blurCell = async (ev: Event) => {
     if(expr !== null){
     const result = await this.ws.evaluate(this.ssName, cellId, expr);
     if (result.isOk) {
-      const data = result.val;
+      
+      const data = result.val;   
+      
       const keys = Object.keys(data);
+      const values = Object.values(data);
+      console.log("data",data)
+      console.log("key",keys)
+      console.log("values",values)
       const key = keys[0]; 
-      const value = data[key];
-      cell.textContent = JSON.stringify(value);
-      cell.setAttribute('data-value', JSON.stringify(value));
-      cell.setAttribute('data-expr', expr);
+      const value = data[key];      
+      cell.textContent = value.toString();
+      cell.setAttribute('data-value', value.toString()); 
+      
+    
+      
+
+     
+      
+      
     } else {
-      this.errors; 
+      this.errors.display;      
     }
   }
   }
@@ -127,15 +156,31 @@ private readonly blurCell = async (ev: Event) => {
 };
 
 
+
+
+
+
   /** listener for a copy event on a spreadsheet data cell */
-  private readonly copyCell = (ev: Event) => {
-    
+  private readonly copyCell = (ev: Event) => {    
     //TODO
+    const cell = ev.target as HTMLElement;
+    
+    this.copySourceCellId = cell;
+    const newCopy = this.ws.query(this.ssName, this.copySourceCellId)
+    cell.classList.add('is-copy-source');
+    
+    
   };
 
   /** listener for a paste event on a spreadsheet data cell */
   private readonly pasteCell = async (ev: Event) => {
+    
     //TODO
+    // const cell = ev.target as HTMLElement;
+    if(this.copySourceCellId !== null){
+    this.copySourceCellId.classList.remove('is-copy-source');
+    }
+    
   };
 
   /** Replace entire spreadsheet with that from the web services.
