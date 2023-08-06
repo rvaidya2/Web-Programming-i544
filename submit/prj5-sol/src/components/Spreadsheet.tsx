@@ -1,10 +1,21 @@
 import React from 'react';
+import { Errors, makeElement } from '../utils';
+
 
 
 const N_ROWS = 10;
 const N_COLS = 10;
 
-class Spreadsheet extends React.Component {
+interface CellData {
+  cellId: string;
+  value: number;
+}
+
+interface SpreadsheetProps {
+  data: CellData[];
+}
+
+class Spreadsheet extends React.Component<SpreadsheetProps> {
   componentDidMount() {
     this.makeEmptySS();
   }
@@ -12,25 +23,25 @@ class Spreadsheet extends React.Component {
   makeEmptySS() {
     const ssDiv = document.querySelector('#ss')!;
     ssDiv.innerHTML = '';
-    const ssTable = this.makeElement('table');
-    const header = this.makeElement('tr');
-    const clearCell = this.makeElement('td');
-    const clear = this.makeElement('button', { id: 'clear', type: 'button' }, 'Clear');
+    const ssTable = makeElement('table');
+    const header = makeElement('tr');
+    const clearCell = makeElement('td');
+    const clear = makeElement('button', { id: 'clear', type: 'button' }, 'Clear');
     clearCell.append(clear);
     header.append(clearCell);
     const A = 'A'.charCodeAt(0);
     for (let i = 0; i < N_COLS; i++) {
-      header.append(this.makeElement('th', {}, String.fromCharCode(A + i)));
+      header.append(makeElement('th', {}, String.fromCharCode(A + i)));
     }
     ssTable.append(header);
     for (let i = 0; i < N_ROWS; i++) {
-      const row = this.makeElement('tr');
-      row.append(this.makeElement('th', {}, (i + 1).toString()));
+      const row = makeElement('tr');
+      row.append(makeElement('th', {}, (i + 1).toString()));
       const a = 'a'.charCodeAt(0);
       for (let j = 0; j < N_COLS; j++) {
         const colId = String.fromCharCode(a + j);
         const id = colId + (i + 1);
-        const cell = this.makeElement('td', {
+        const cell = makeElement('td', {
           id,
           className: 'cell',
           contentEditable: 'true',
@@ -42,22 +53,22 @@ class Spreadsheet extends React.Component {
     ssDiv.append(ssTable);
   }
 
-  makeElement(tag: string, attributes: any = {}, content?: string | HTMLElement) {
-    const element = document.createElement(tag);
-    Object.keys(attributes).forEach((key) => {
-      element.setAttribute(key, attributes[key]);
-    });
-    if (content) {
-      if (typeof content === 'string') {
-        element.textContent = content;
-      } else {
-        element.appendChild(content);
-      }
+
+  updateCellValue = (cellId: string, value: number) => {
+    const cellElement = document.getElementById(cellId);
+    if (cellElement) {
+      cellElement.textContent = value.toString();
     }
-    return element;
-  }
+  };
 
   render() {
+    const { data } = this.props;
+
+    // Update cell values using the received data
+    data.forEach((cellData: { cellId: string; value: number; }) => {
+      this.updateCellValue(cellData.cellId, cellData.value);
+    });
+
     return <div id="ss" />;
   }
 }

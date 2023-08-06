@@ -11,7 +11,7 @@ function App() {
   return (
     <>
     <LoadForm wsUrl={wsUrl}/>
-    <Spreadsheet/>
+    
     </>
   )
 }
