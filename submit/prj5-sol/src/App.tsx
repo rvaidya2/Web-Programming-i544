@@ -1,17 +1,21 @@
 import React from 'react';
-import TopLevelUI from './components/TopLevelUI';
+import LoadForm from './components/TopLevelUI';
+import Spreadsheet from './components/Spreadsheet';
+import SpreadsheetWs from './ss-ws';
 
-async function makeApp(wsUrl: string) {
-  return (
-    <div>
-      <TopLevelUI wsUrl={wsUrl} />
-      {/* <LoadFormHandler /> */}
-    </div>
-  );
-}
+
 
 function App() {
-  return null
+  const wsUrl = 'https://zdu.binghamton.edu:2345';
+ 
+  return (
+    <>
+    <LoadForm wsUrl={wsUrl}/>
+    <Spreadsheet/>
+    </>
+  )
 }
+
+
 
 export default App;

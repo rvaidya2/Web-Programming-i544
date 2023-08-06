@@ -1,4 +1,4 @@
-import { Err, ErrResult, Result, okResult, errResult } from 'cs544-js-utils';
+import { ErrResult, Result, okResult, errResult } from 'cs544-js-utils';
 
 type Updates = { [cellId: string]: number };
 
