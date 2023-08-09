@@ -1,5 +1,4 @@
 import React from 'react';
-import LoadForm from './components/TopLevelUI';
 import Spreadsheet from './components/Spreadsheet';
 import SpreadsheetWs from './ss-ws';
 
@@ -10,7 +9,7 @@ function App() {
  
   return (
     <>
-    <LoadForm wsUrl={wsUrl}/>
+   <Spreadsheet wsUrl={wsUrl}/>
     
     </>
   )
