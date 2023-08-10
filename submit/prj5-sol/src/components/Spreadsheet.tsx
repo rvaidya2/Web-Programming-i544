@@ -24,7 +24,7 @@ const Spreadsheet: React.FC<SpreadsheetSelectorProps> = ({ wsUrl }) => {
     try {
       
       const dumpResult = await ssWs.dumpWithValues(spreadsheetName);
-      console.log("Dump Result:", dumpResult);
+      // console.log("Dump Result:", dumpResult);
       if (dumpResult.isOk) {
         setSpreadsheetData(dumpResult.val);
       } else {
@@ -38,45 +38,6 @@ const Spreadsheet: React.FC<SpreadsheetSelectorProps> = ({ wsUrl }) => {
   };
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSpreadsheetName(e.target.value);
-  };
-  const blurCell = async (target: HTMLElement) => {
-    const cellId = target.id;
-    const expr = target.textContent?.trim() || '';
-  
-    try {
-      const updatesResult = (expr.length > 0)
-        ? await ssWs.evaluate(spreadsheetName, cellId, expr)
-        : await ssWs.remove(spreadsheetName, cellId);
-  
-      if (updatesResult.isOk) {
-        // Save the evaluated value in the updates before sending to the server
-        const newValue = updatesResult.val[cellId];
-        target.setAttribute('data-expr', expr);
-        target.setAttribute('data-value', newValue.toString());
-        update(updatesResult.val);
-      } else {
-        target.textContent = target.getAttribute('data-value');
-        // Display error message
-      }
-    } catch (error) {
-      console.error('Error handling cell blur:', error);
-    }
-  
-    setFocusedCellId(null);
-  };
-  
-
-  const update = (updates: Record<string, number>) => {
-    setSpreadsheetData(prevData => {
-      return prevData.map(item => {
-        const [cellId, _expr, _value] = item;
-        if (cellId in updates) {
-          const newValue = updates[cellId].toString();
-          return [cellId, _expr, newValue];
-        }
-        return item;
-      });
-    });
   };
   
 
@@ -120,7 +81,7 @@ const Spreadsheet: React.FC<SpreadsheetSelectorProps> = ({ wsUrl }) => {
         });
         cell.addEventListener('click', () => handleCellClick(cell));
         
-        cell.addEventListener('blur', () => blurCell(cell));
+        cell.addEventListener('blur', () => blurCell(cell, cell.textContent!.trim()));
        
         
         // Find the corresponding value in spreadsheetData and set it in the cell
@@ -161,16 +122,48 @@ const Spreadsheet: React.FC<SpreadsheetSelectorProps> = ({ wsUrl }) => {
 
   const handleCellClick = (cell: HTMLElement) => {
     if (focusedCellRef.current) {
-      focusedCellRef.current.textContent = focusedCellRef.current.getAttribute('data-expr');
+      focusedCellRef.current.textContent = focusedCellRef.current.getAttribute('data-expr')!;
     }
     focusedCellRef.current = cell;
-    focusedCellRef.current.textContent = focusedCellRef.current.getAttribute('data-expr');
-    
+    cell.textContent = cell.getAttribute('data-expr')!;
   };
-  const handleCellBlur = async (e: React.FocusEvent<HTMLElement>, cell: HTMLElement) => {
-    e.stopPropagation();
-    blurCell(cell);
+
+  const blurCell = async (cell: HTMLElement, expr: string) => {
+    const cellId = cell.id;
+  
+    const updatesResult =
+    (expr.length > 0) 
+    ? await ssWs.evaluate(spreadsheetName!, cellId, expr)
+    : await ssWs.remove(spreadsheetName!, cellId);
+  if (updatesResult.isOk) {
+   
+    cell.setAttribute('data-expr', expr);
+    update(updatesResult.val);
+  }
+  else {
+    cell.textContent = cell.getAttribute('data-value');
+    // this.errors.display(updatesResult.errors);
+  }
+  focusedCellRef.current = null;
+};
+
+  
+  
+
+  const update = (updates: Record<string, number>) => {
+    for (const [cellId, value] of Object.entries(updates)) {
+      const cell = document.querySelector(`#${cellId}`);
+      if (cellId !== focusedCellId) {
+        const val = value.toString();
+        cell!.textContent = val;
+        cell!.setAttribute('data-value', val);
+      }
+    }
   };
+  
+  
+  
+ 
   return (
     <>
       <div>
