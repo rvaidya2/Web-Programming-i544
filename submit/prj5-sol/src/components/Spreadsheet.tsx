@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { makeElement, Errors } from "../utils";
 import SpreadsheetWs from "../ss-ws";
-import ssWs from "../ss-ws";
 
 const [N_ROWS, N_COLS] = [10, 10];
 
@@ -14,24 +13,23 @@ const Spreadsheet: React.FC<SpreadsheetSelectorProps> = ({ wsUrl }) => {
   const [spreadsheetData, setSpreadsheetData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [focusedCellId, setFocusedCellId] = useState<string | null>(null);
+  const copySrcCellIdRef = useRef<string | null>(null);
   const focusedCellRef = useRef<HTMLElement | null>(null);
   const ssWs = SpreadsheetWs.make(wsUrl);
-
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     try {
-      
       const dumpResult = await ssWs.dumpWithValues(spreadsheetName);
-      // console.log("Dump Result:", dumpResult);
+      
       if (dumpResult.isOk) {
         setSpreadsheetData(dumpResult.val);
       } else {
-        console.error("Error fetching spreadsheet data:", dumpResult.errors);
+        
       }
     } catch (error) {
-      console.error("Error fetching spreadsheet data:", error);
+      
     } finally {
       setLoading(false);
     }
@@ -39,7 +37,6 @@ const Spreadsheet: React.FC<SpreadsheetSelectorProps> = ({ wsUrl }) => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSpreadsheetName(e.target.value);
   };
-  
 
   useEffect(() => {
     makeEmptySS();
@@ -77,14 +74,18 @@ const Spreadsheet: React.FC<SpreadsheetSelectorProps> = ({ wsUrl }) => {
           id,
           className: "cell",
           contentEditable: "true",
-                    
         });
-        cell.addEventListener('click', () => handleCellClick(cell));
+        cell.addEventListener("click", () => handleCellClick(cell));
+
+        cell.addEventListener("blur", () =>
+          blurCell(cell, cell.textContent!.trim())
+        );
+
         
-        cell.addEventListener('blur', () => blurCell(cell, cell.textContent!.trim()));
+        cell.addEventListener('copy', (e: ClipboardEvent) => handleCopy(e));
+        cell.addEventListener('paste', (e: ClipboardEvent) => handlePaste(e));
        
         
-        // Find the corresponding value in spreadsheetData and set it in the cell
         const data = spreadsheetData.find(([cellId]) => cellId === id);
         if (data) {
           cell.setAttribute("data-expr", data[1]);
@@ -101,54 +102,48 @@ const Spreadsheet: React.FC<SpreadsheetSelectorProps> = ({ wsUrl }) => {
   };
   const handleClear = async () => {
     try {
-      
-      const clearResult = await ssWs.clear(spreadsheetName); // Call the clear function
+      const clearResult = await ssWs.clear(spreadsheetName);  
       if (clearResult.isOk) {
-        setSpreadsheetData([]); // Clear the data
-        makeEmptySS(); // Reset the table view
-        // Clear cell data
+        setSpreadsheetData([]); 
+        makeEmptySS(); 
         document.querySelectorAll(".cell").forEach((c) => {
           c.setAttribute("data-value", "");
           c.setAttribute("data-expr", "");
           c.textContent = "";
         });
       } else {
-        console.error("Error clearing spreadsheet:", clearResult.errors);
+        
       }
     } catch (error) {
-      console.error("Error clearing spreadsheet:", error);
+      
     }
   };
 
   const handleCellClick = (cell: HTMLElement) => {
     if (focusedCellRef.current) {
-      focusedCellRef.current.textContent = focusedCellRef.current.getAttribute('data-expr')!;
+      focusedCellRef.current.textContent =
+        focusedCellRef.current.getAttribute("data-expr")!;
     }
     focusedCellRef.current = cell;
-    cell.textContent = cell.getAttribute('data-expr')!;
+    cell.textContent = cell.getAttribute("data-expr")!;
   };
 
   const blurCell = async (cell: HTMLElement, expr: string) => {
     const cellId = cell.id;
-  
-    const updatesResult =
-    (expr.length > 0) 
-    ? await ssWs.evaluate(spreadsheetName!, cellId, expr)
-    : await ssWs.remove(spreadsheetName!, cellId);
-  if (updatesResult.isOk) {
-   
-    cell.setAttribute('data-expr', expr);
-    update(updatesResult.val);
-  }
-  else {
-    cell.textContent = cell.getAttribute('data-value');
-    // this.errors.display(updatesResult.errors);
-  }
-  focusedCellRef.current = null;
-};
 
-  
-  
+    const updatesResult =
+      expr.length > 0
+        ? await ssWs.evaluate(spreadsheetName!, cellId, expr)
+        : await ssWs.remove(spreadsheetName!, cellId);
+    if (updatesResult.isOk) {
+      cell.setAttribute("data-expr", expr);
+      update(updatesResult.val);
+    } else {
+      cell.textContent = cell.getAttribute("data-value");
+      
+    }
+    focusedCellRef.current = null;
+  };
 
   const update = (updates: Record<string, number>) => {
     for (const [cellId, value] of Object.entries(updates)) {
@@ -156,14 +151,44 @@ const Spreadsheet: React.FC<SpreadsheetSelectorProps> = ({ wsUrl }) => {
       if (cellId !== focusedCellId) {
         const val = value.toString();
         cell!.textContent = val;
-        cell!.setAttribute('data-value', val);
+        cell!.setAttribute("data-value", val);
       }
     }
   };
+
   
+  const handleCopy = (e: ClipboardEvent) => {
+    const target = e.target as HTMLTableCellElement;
+    target.classList.add('is-copy-source');
+    copySrcCellIdRef.current = target.id;
+  };
   
+  const handlePaste = async (e: ClipboardEvent) => {
+    e.preventDefault();
+    if (!copySrcCellIdRef.current) return;
+    const srcCellId = copySrcCellIdRef.current;
+    const destCellId = (e.target as HTMLTableCellElement).id;
   
- 
+    try {
+      const copyResult = await ssWs.copy(spreadsheetName, destCellId, srcCellId);
+      const queryResult = await ssWs.query(spreadsheetName, destCellId);
+  
+      if (copyResult.isOk && queryResult.isOk) {
+        setSpreadsheetData([...spreadsheetData, [destCellId, queryResult.val.expr, queryResult.val.value]]);
+        e.clipboardData?.setData("text/plain", queryResult.val.expr);
+        copySrcCellIdRef.current = null;
+      } else {
+        
+      }
+    } catch (error) {
+      
+    }
+  };
+  
+
+
+
+  
   return (
     <>
       <div>
@@ -190,5 +215,3 @@ const Spreadsheet: React.FC<SpreadsheetSelectorProps> = ({ wsUrl }) => {
 };
 
 export default Spreadsheet;
-
-
