@@ -16,6 +16,8 @@ const Spreadsheet: React.FC<SpreadsheetSelectorProps> = ({ wsUrl }) => {
   const copySrcCellIdRef = useRef<string | null>(null);
   const focusedCellRef = useRef<HTMLElement | null>(null);
   const ssWs = SpreadsheetWs.make(wsUrl);
+  const [errorMessage, setErrorMessage] = useState('');
+  
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,8 +29,10 @@ const Spreadsheet: React.FC<SpreadsheetSelectorProps> = ({ wsUrl }) => {
         setSpreadsheetData(dumpResult.val);
       } else {
         
+        setErrorMessage('Could not load data');
       }
     } catch (error) {
+      setErrorMessage('Could not fetch data');
       
     } finally {
       setLoading(false);
@@ -112,10 +116,10 @@ const Spreadsheet: React.FC<SpreadsheetSelectorProps> = ({ wsUrl }) => {
           c.textContent = "";
         });
       } else {
-        
+        setErrorMessage('Could not Clear Spreadsheet');
       }
     } catch (error) {
-      
+      setErrorMessage('Could not Clear data');
     }
   };
 
@@ -178,10 +182,10 @@ const Spreadsheet: React.FC<SpreadsheetSelectorProps> = ({ wsUrl }) => {
         e.clipboardData?.setData("text/plain", queryResult.val.expr);
         copySrcCellIdRef.current = null;
       } else {
-        
+        setErrorMessage('Could not copy data');
       }
     } catch (error) {
-      
+      setErrorMessage('Could not query data');
     }
   };
   
